@@ -1,0 +1,183 @@
+\documentclass[12pt,letterpaper]{article}
+\usepackage{fullpage}
+\usepackage[top=2cm, bottom=4.5cm, left=2.5cm, right=2.5cm]{geometry}
+\usepackage{amsmath,amsthm,amsfonts,amssymb,amscd}
+% \usepackage{lastpage}
+\usepackage{enumerate}
+\usepackage{fancyhdr}
+% \usepackage{mathrsfs}
+\usepackage{xcolor}
+% \usepackage{graphicx}
+\usepackage{listings}
+\usepackage{hyperref}
+
+% define vector
+\newcommand{\q}{\underline}
+\newcommand{\mt}{\mathrm}
+
+% define in-line code
+\definecolor{codegray}{gray}{0.9}
+\newcommand{\code}[1]{\colorbox{codegray}{\texttt{#1}}}
+
+\hypersetup{%
+  colorlinks=true,
+  linkcolor=blue,
+  linkbordercolor={0 0 1}
+}
+
+\renewcommand\lstlistingname{Snippet}
+\renewcommand\lstlistlistingname{Snippet}
+\def\lstlistingautorefname{Snippet.}
+
+\lstdefinestyle{python}{
+    language        = python,
+    frame           = lines, 
+    basicstyle      = \footnotesize,
+    keywordstyle    = \color{violet},
+    stringstyle     = \color{green},
+    commentstyle    = \color{red}\ttfamily
+}
+
+
+\setlength{\parindent}{0.2in}
+\setlength{\parskip}{0.1in}
+
+% Edit these as appropriate
+\newcommand\course{Composite SEDs}
+\newcommand\hwnumber{1}                  % <-- homework number
+\newcommand\NetIDa{M.-F. Ho}           % <-- NetID of person #1
+% \newcommand\NetIDb{netid12038}           % <-- NetID of person #2 (Comment this line out for problem sets)
+
+\pagestyle{fancyplain}
+\headheight 35pt
+\lhead{\NetIDa}
+% \lhead{\NetIDa\\\NetIDb}                 % <-- Comment this line out for problem sets (make sure you are person #1)
+\chead{\textbf{\Large Report: Cross Validation \\for Bij Threshold}}
+\rhead{\course \\ \today}
+\lfoot{}
+\cfoot{}
+\rfoot{\small\thepage}
+\headsep 1.5em
+
+\begin{document}
+
+\section*{Grid Search : Bij Matrix}
+
+Calculating the full Bij matrix is a kind of grid search method 
+for searching maximum likelihood, which means we compute thoroughly every pairs in the
+input data, $X$ to get the optimal number of clusters.
+The expense of grid searching calculation is usually growth as $O(N^2)$.
+While the size of the data grows, the computation expense will grow quadratic.
+
+The formalism of Bij matrix is as simple as,
+\begin{equation}
+    \begin{split}
+        b_{ij} &= \sqrt{ \frac{\Sigma ( f_{\lambda i} - a_{ij} f_{\lambda j} )^2}{\Sigma (f_{\lambda i})^2} }\\
+        a_{ij} &= \frac{\Sigma f_{\lambda i} \circ f_{\lambda j} }{f_{\lambda j}^2}.
+    \end{split}
+\end{equation}
+
+It could be understood as an approximated version of Gaussian mixture model (\textsc{GMM})
+with all indicators and standard deviations of the Gaussians are equal to unity.
+The likelihood function for a Gaussian mixture with 
+input data $X = x_i, ..., x_n$ is
+
+\begin{equation}
+    p(X, Z \mid \mu, \sigma, \pi) 
+    = \prod_{i=1}^{n} \prod_{k=1}^{K} 
+    \pi_k^{I(Z_i = k)} N(x_i \mid \mu_k, \sigma_k)^{I(Z_i = k)},
+    \label{eq:GMM_likelihood}
+\end{equation}
+where $\mu_k$ is the mean of the kth group, 
+$\sigma_k$ is the standard deviation of the kth group,
+and $\pi_k$ is the scale factor 
+(for how high for the peak of kth Gaussian distribution)
+for kth group.
+The Eq~\ref{eq:GMM_likelihood} shows the likelihood of 
+classifying input $X$ into $K$ groups with vectors of $\mu$, $\sigma$, $\pi$, 
+which parameterize the Gaussian mixture model.
+
+We can rewrite the Bij calculation in the form of \textsc{gmm},
+which allows us to get the likelihood function of our Grid Search method,
+
+\begin{equation}
+    \begin{split}
+        p(X, Z \mid \mu) 
+        &= 
+        \prod_{i=1}^{n} \prod_{k=1}^{K} 
+        N(x_i \mid \mu_k)^{I(Z_i = k)}\\
+        &\simeq 
+        \prod_{i=1}^{n} \prod_{k=1}^{K} 
+        \exp{\left( - \frac{1}{2}  \frac{ \Sigma (f_{\lambda i} - a_{ik} f_{\lambda k} )^2 }{ \Sigma (f_{\lambda k})^2 }  \right)}^{I(Z_i = k)}.
+    \end{split}
+    \label{eq:GMM_likelihood_Bij}
+\end{equation}
+
+The $f_{\lambda k}$ can be understood as the rest-frame flux
+of primary galaxy in the kth group.
+The meaning of the likelihood function is that we are calculating the
+probability that input rest-frame fluxes 
+$f_{\lambda 1}, ..., f_{\lambda n}$
+could be explained by $K$ Gaussian mixtures, 
+which have the rest-frame fluxes of primary galaxies as mean values.
+
+Notice that the \textsc{gmm} of Bij have the same height and same width of Gaussians.
+I guess people made this choice was for the computational simplicity, 
+since we only have to grid search for mean values in Eq~\ref{eq:GMM_likelihood_Bij}.
+But note that it's still possible for introduce $\pi$ and $\sigma$ in our Bij calculation.
+
+\section*{Cross Validation for Hyperparameters}
+
+One standard method in machine learning for preventing overfitting is using cross validation.
+The idea of cross validation is simple.
+We split the data into training set and validation set.
+We fit our model using only training set, and we use our trained model to predict the results of validation set.
+If we find our model performs well in the validation set, then it means our choice of hyperparameters is reasonable. 
+
+In the case of Bij calculation, the hyperparameter is ``the upper bound of bij similarity (b\_lim)''.
+The b\_lim is the largest value for a galaxy to be considered as a group member of the primary galaxy.
+In Ben's paper, the choice of b\_lim is 0.05.
+By using cross validation, it's possible to give a justifiable b\_lim by maximizing or minimizing a criterion.
+
+Consider the case we randomly split the data $X = x_1, ..., x_N$ into training set $X^{(T)}$ and validation set $X^{(V)}$ (where $X^{(T)} \cup X^{(V)} = X$), and we perform the grid search method with a given hyperparameter to find the composite SED groups,
+
+\begin{equation}
+    \hat{ \mathbf{\mu} } = 
+    \mathrm{GridSearch}(X^{(T)} \mid b_{lim}),
+    \label{eq:gridsearch}
+\end{equation}
+where $\hat{\mu} = f_{\lambda 1}, ..., f_{\lambda k}, ..., f_{\lambda M}$ is a vector of $M$ mean values of $M$ composite groups.
+Eq~\ref{eq:gridsearch} means that we apply Bij calculation to training set ($X^{(T)}$) and set the upper bound of bij as $b_{lim}$, and then we find $M$ mean values of composite groups.
+
+To test how likely the composite groups we found in GridSearch is correct, we calculate the likelihood of the validation set belonging to $\hat \mu = f_{\lambda 1}, ..., f_{\lambda k}, ..., f_{\lambda M}$,
+
+\begin{equation}
+    \begin{split}
+        &p(X^{(V)} \mid \hat \mu, b_{lim}) \\ 
+        = &\hat L \sim \exp{\left( - \frac{1}{2} \frac{ \Sigma (f_{\lambda i} - a_{ik} f_{\lambda k} )^2 }{\Sigma (f_{\lambda k})^2} \right)},   
+    \end{split}
+    \label{eq:likelihood}
+\end{equation}
+where we simply just calculate how validation data deviated from the mixture Gaussians of composite SEDs.
+We use approximation sign here because we approximate the means of mixture Gaussians as rest-frame photometries of primary galaxies, according to the convention in the original paper.
+
+If we change the choice of hyperparameter $b_{lim}$, the validation likelihood $\hat L$ will also change.
+The optimal choice of b\_lim would be the one maximizing the validation likelihood $\hat L$.
+
+
+\section*{Bayesian Information Criterion}
+In instead of maximizing validation likelihood, it's also sensible to choose other criterion to optimize our hyperparameter.
+One would expect if we have more composite groups, then the validation likelihood would also increase.
+This is the situation we want to avoid when we are running the clustering algorithm.
+Therefore, it would be more clever to choose a criterion which would penalize the number of clusters.
+Bayesian information criterion (BIC) could be a nice choice since it naturally penalizes the number of parameters used in the model.
+
+The definition of BIC is,
+\begin{equation}
+    \mathrm{BIC} = \ln{(N)} \times M - 2\ln{\hat L},
+\end{equation}
+where N is the number of observed data, M is the number of parameters, and $\hat L$ is the maximum likelihood estimations.
+The choice of b\_lim with lowest BIC is preferred. 
+According to the definition of BIC, the more composite groups, choice of b\_lim is less preferred.
+
+\end{document}

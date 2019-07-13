@@ -1,0 +1,179 @@
+\documentclass[12pt,letterpaper]{article}
+\usepackage{fullpage}
+\usepackage[top=2cm, bottom=4.5cm, left=2.5cm, right=2.5cm]{geometry}
+\usepackage{amsmath,amsthm,amsfonts,amssymb,amscd}
+% \usepackage{lastpage}
+\usepackage{enumerate}
+\usepackage{fancyhdr}
+% \usepackage{mathrsfs}
+\usepackage{xcolor}
+% \usepackage{graphicx}
+\usepackage{listings}
+\usepackage{hyperref}
+
+% define vector
+\newcommand{\q}{\underline}
+\newcommand{\mt}{\mathrm}
+
+% define in-line code
+\definecolor{codegray}{gray}{0.9}
+\newcommand{\code}[1]{\colorbox{codegray}{\texttt{#1}}}
+
+\hypersetup{%
+  colorlinks=true,
+  linkcolor=blue,
+  linkbordercolor={0 0 1}
+}
+
+\renewcommand\lstlistingname{Snippet}
+\renewcommand\lstlistlistingname{Snippet}
+\def\lstlistingautorefname{Snippet.}
+
+\lstdefinestyle{python}{
+    language        = python,
+    frame           = lines, 
+    basicstyle      = \footnotesize,
+    keywordstyle    = \color{violet},
+    stringstyle     = \color{green},
+    commentstyle    = \color{red}\ttfamily
+}
+
+
+\setlength{\parindent}{0.0in}
+\setlength{\parskip}{0.05in}
+
+% Edit these as appropriate
+\newcommand\course{Composite SEDs}
+\newcommand\hwnumber{1}                  % <-- homework number
+\newcommand\NetIDa{Ming-Feng Ho}           % <-- NetID of person #1
+% \newcommand\NetIDb{netid12038}           % <-- NetID of person #2 (Comment this line out for problem sets)
+
+\pagestyle{fancyplain}
+\headheight 35pt
+\lhead{\NetIDa}
+% \lhead{\NetIDa\\\NetIDb}                 % <-- Comment this line out for problem sets (make sure you are person #1)
+\chead{\textbf{\Large Report: Bayesian Model Selection}}
+\rhead{\course \\ \today}
+\lfoot{}
+\cfoot{}
+\rfoot{\small\thepage}
+\headsep 1.5em
+
+\begin{document}
+
+\section*{Gaussian Process (GP) on Composite SEDs}
+
+For a given type of composite SED,
+
+\begin{equation}
+    \q f_\lambda \sim \mathcal{GP}( \q \mu( \q f^{\mt{(rest)}}, z ), \q {\q K} ),
+\end{equation}
+
+where
+
+\begin{equation*}
+    \q f^{\mt{(obs)}}(\q \lambda) = \q f^{\mt{(rest)}}(\frac{\q \lambda}{1 + z}).
+\end{equation*}
+
+GP is fully specified by two quantities, the mean function $\q \mu$ and the covariance $\q{\q K}$.
+
+\begin{equation}
+    \begin{split}
+        \mu(\lambda) &= \mathbb{E} [ f^{\mt{(rest)}}(\lambda) \mid \lambda ]\\
+        \q{\q K}     &= \mt{cov}[  f^{\mt{(rest)}}(\lambda), f^{\mt{(rest)}}(\lambda') 
+            \mid \lambda, \lambda' ]
+    \end{split}
+\end{equation}
+
+Given a finite set of $\q \lambda$, the $\q f$ would be multivariate Gaussian distributed,
+
+\begin{equation*}
+    \begin{split}
+        p(\q f) &= \mathcal{N}( \q f; \mu(\q \lambda), K(\q \lambda, \q \lambda) )\\
+                &= \frac{1}{\sqrt{ (2\pi)^d \mt{det} \q{\q K} }}
+                    \exp{ \left (   -\frac{1}{2} (\q f - \q \mu)^{\mt T} \q{\q K}^{-1} (\q f - \q \mu).  \right ) }
+    \end{split}
+\end{equation*}
+
+
+The choice of $\q{\q K}$ reflects the covariance structure of the composite SED 
+with a given galaxy type.
+The prior for noise could be brought into the GP using variances $\q v = \sigma(\q \lambda)^2$ of the measurements 
+from the flux,
+
+\begin{equation*}
+    p(\q f) = \mathcal{N}(\q f; \mu(\q \lambda), K(\q \lambda, \q \lambda), \q{\q V})
+\end{equation*}
+where $\q{\q V} = \mt{diag} \q v$.
+
+If necessary, we can model an extra noise term $\q{\q \Omega} = \mt{diag}\q \omega$ which depends on the redshift.
+
+The complete prior expression, 
+
+\begin{equation}
+    p(\q y \mid \q f, \q v, z, \mathcal{M}_i) = \mathcal{N}(\q f; \mu(\q \lambda), K(\q \lambda, \q \lambda), \q{\q V}, \q{\q \Omega})
+\end{equation}
+where $\mathcal{M}_i$, $ i \in { \mt{ \{QG, PSB, TG, SFG, (D)SFG, ELG\} } } $, 
+corresponds to different galaxy types identified by 
+composite SEDs and human justifications.
+
+To learn the mean vector $\q \mu$, simply just take the mean at rest frame,
+\begin{equation}
+    \q \mu_i = \mt{median}_{\neg \mt{NaN}} (\q y_i).
+\end{equation}
+
+For the positive semi-definite covariance matrix $\q{\q K}$, 
+decompose it into $\q{\q K} = \q{\q M} \q{\q M}^{\mt T}$, 
+and train the $\q{\q M}$ based on taking first few eigenspectra of principal component analysis (PCA).
+
+If we have any additional assumption on the redshift dependent noise terms need to be specified,
+we can use maximum likelihood estimation to get the optimal parameters for noise.
+
+
+
+\section*{Bayesian Model Selection}
+
+Bayesian model selection formula,
+\begin{equation*}
+    \mt{Pr}(\mathcal{M} \mid \mathcal{D}) = 
+    \frac{ 
+        \mt{Pr}(\mathcal{D} \mid \mathcal{M})\mt{Pr}(\mathcal M)
+        }{ 
+        \sum_i \mt{Pr}(\mathcal{D} \mid \mathcal M_i) \mt{Pr}(\mathcal M_i) 
+    }.
+\end{equation*}
+
+Let $i$ be some pre-selected galaxy types, i.e., $i = ...$
+\begin{enumerate}
+    \item QG     : quiescent galaxy
+    \item PSB    : post-starburst galaxy
+    \item TG     : transitioning galaxy 
+    \item SFG    : star-forming galaxy
+    \item (D)SFG : (dusty) star-forming galaxy
+    \item ELG    : emission-line galaxy
+\end{enumerate}
+
+Usually, the prior depends on the redshift, so
+
+\begin{equation}
+    \mt{Pr}(\mathcal{M} \mid \mathcal{D}, z) = 
+    \frac{ 
+        \mt{Pr}(\mathcal{D} \mid \mathcal{M}, z)\mt{Pr}(\mathcal{M} \mid z)
+        }{ 
+        \sum_i \mt{Pr}(\mathcal{D} \mid \mathcal{M}_i, z) \mt{Pr}(\mathcal{M}_i \mid z) 
+    },
+\end{equation}
+where $ i \in { \mt{ \{QG, PSB, TG, SFG, (D)SFG, ELG\} } } $.
+
+
+$\mt{Pr}(\mathcal{M} \mid \mathcal{D}, z)$ would give a probabilistic 
+prediction of the classification of the incoming photometric data.
+
+The marginal cases would give roughly even probabilities on each $\mathcal{M}_i$. 
+We could just keep them in another place and analyze them later in the future. 
+Usually, we expect to find new classification types in the marginal cases.
+
+Issue: since our GP is trained on composite SEDs with discrete pixels, how to deal with missing 
+pixels (sparse photometric spectra) would be a problem. 
+
+\end{document}
