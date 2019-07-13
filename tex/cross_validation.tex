@@ -63,22 +63,24 @@
 
 \section*{Grid Search : Bij Matrix}
 
-Calculating the full Bij matrix is a kind of grid search method 
-for searching maximum likelihood, which means we compute thoroughly every pairs in the
-input data, $X$ to get the optimal number of clusters.
-The expense of grid searching calculation is usually growth as $O(N^2)$.
-While the size of the data grows, the computation expense will grow quadratic.
+Calculating Bij matrix is a kind of grid-search method 
+for searching maximum likelihood, which means we compute thoroughly every pairs of galaxies in the
+input data, $X = x_1, ..., x_N = f_{\lambda 1}, ..., f_{\lambda N}$, to get an optimal number of clusters.
+The computational expense of grid-search calculation is it usually grows as $O(N^2)$.
+While the size of the data grows, the computational expense will grow quadratically.
 
 The formalism of Bij matrix is as simple as,
 \begin{equation}
     \begin{split}
         b_{ij} &= \sqrt{ \frac{\Sigma ( f_{\lambda i} - a_{ij} f_{\lambda j} )^2}{\Sigma (f_{\lambda i})^2} }\\
-        a_{ij} &= \frac{\Sigma f_{\lambda i} \circ f_{\lambda j} }{f_{\lambda j}^2}.
+        a_{ij} &= \frac{\Sigma f_{\lambda i} \circ f_{\lambda j} }{f_{\lambda j}^2},
     \end{split}
 \end{equation}
+where $b_{ij}$ is the similarity between a pair of galaxies and $a_{ij}$ is the multiplication scaling factor between a pair of galaxies.
+The $b_{ij}$ could also be considered as squared errors or the log Gaussian probabilities before normalization.
 
-It could be understood as an approximated version of Gaussian mixture model (\textsc{GMM})
-with all indicators and standard deviations of the Gaussians are equal to unity.
+The grouping method of composite SEDs could be understood as an approximated version of Gaussian mixture model (\textsc{GMM})
+with all indicators ($\pi$) and standard deviations ($\sigma$) of the Gaussians are equal to unity.
 The likelihood function for a Gaussian mixture with 
 input data $X = x_i, ..., x_n$ is
 
@@ -98,7 +100,7 @@ classifying input $X$ into $K$ groups with vectors of $\mu$, $\sigma$, $\pi$,
 which parameterize the Gaussian mixture model.
 
 We can rewrite the Bij calculation in the form of \textsc{gmm},
-which allows us to get the likelihood function of our Grid Search method,
+which allows us to get the likelihood function of our GridSearch method,
 
 \begin{equation}
     \begin{split}
@@ -112,7 +114,6 @@ which allows us to get the likelihood function of our Grid Search method,
     \end{split}
     \label{eq:GMM_likelihood_Bij}
 \end{equation}
-
 The $f_{\lambda k}$ can be understood as the rest-frame flux
 of primary galaxy in the kth group.
 The meaning of the likelihood function is that we are calculating the
@@ -137,9 +138,9 @@ If we find our model performs well in the validation set, then it means our choi
 In the case of Bij calculation, the hyperparameter is ``the upper bound of bij similarity (b\_lim)''.
 The b\_lim is the largest value for a galaxy to be considered as a group member of the primary galaxy.
 In Ben's paper, the choice of b\_lim is 0.05.
-By using cross validation, it's possible to give a justifiable b\_lim by maximizing or minimizing a criterion.
+By using cross validation, it's possible to give a justifiable b\_lim by maximizing or minimizing a chosen criterion.
 
-Consider the case we randomly split the data $X = x_1, ..., x_N$ into training set $X^{(T)}$ and validation set $X^{(V)}$ (where $X^{(T)} \cup X^{(V)} = X$), and we perform the grid search method with a given hyperparameter to find the composite SED groups,
+Consider the case we randomly split the data $X = x_1, ..., x_N$ into training set $X^{(T)}$ and validation set $X^{(V)}$ (where $X^{(T)} \cup X^{(V)} = X$), and we perform the grid-search method with a given hyperparameter to find the composite SED groups,
 
 \begin{equation}
     \hat{ \mathbf{\mu} } = 
@@ -154,7 +155,10 @@ To test how likely the composite groups we found in GridSearch is correct, we ca
 \begin{equation}
     \begin{split}
         &p(X^{(V)} \mid \hat \mu, b_{lim}) \\ 
-        = &\hat L \sim \exp{\left( - \frac{1}{2} \frac{ \Sigma (f_{\lambda i} - a_{ik} f_{\lambda k} )^2 }{\Sigma (f_{\lambda k})^2} \right)},   
+        = &\hat L 
+        \sim
+        \prod_{i=1}^{N^{(V)}} \prod_{k=1}^{M}         
+        \exp{\left( - \frac{1}{2} \frac{ \Sigma (f_{\lambda i} - a_{ik} f_{\lambda k} )^2 }{\Sigma (f_{\lambda k})^2} \right)},   
     \end{split}
     \label{eq:likelihood}
 \end{equation}
