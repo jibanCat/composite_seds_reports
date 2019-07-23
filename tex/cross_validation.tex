@@ -116,14 +116,14 @@ which allows us to get the likelihood function of our GridSearch method,
 \end{equation}
 The $f_{\lambda k}$ can be understood as the rest-frame flux
 of primary galaxy in the kth group.
-The meaning of the likelihood function is that we are calculating the
-probability that input rest-frame fluxes 
-$f_{\lambda 1}, ..., f_{\lambda n}$
-could be explained by $K$ Gaussian mixtures, 
-which have the rest-frame fluxes of primary galaxies as mean values.
+The meaning of the likelihood function is the
+probability of input rest-frame fluxes 
+($f_{\lambda 1}, ..., f_{\lambda n}$)
+being explained by $K$ Gaussian mixtures.
+Note that we approximate the means of Gaussian mixtures as the rest-frame fluxes of the primary galaxies.
 
 Notice that the \textsc{gmm} of Bij have the same height and same width of Gaussians.
-I guess people made this choice was for the computational simplicity, 
+I guess people made this choice because of the computational simplicity, 
 since we only have to grid search for mean values in Eq~\ref{eq:GMM_likelihood_Bij}.
 But note that it's still possible for introduce $\pi$ and $\sigma$ in our Bij calculation.
 
@@ -137,14 +137,14 @@ If we find our model performs well in the validation set, then it means our choi
 
 In the case of Bij calculation, the hyperparameter is ``the upper bound of bij similarity (b\_lim)''.
 The b\_lim is the largest value for a galaxy to be considered as a group member of the primary galaxy.
-In Ben's paper, the choice of b\_lim is 0.05.
+In Kriek et al. (2011) paper, the choice of b\_lim is $b < 0.05$.
 By using cross validation, it's possible to give a justifiable b\_lim by maximizing or minimizing a chosen criterion.
 
 Consider the case we randomly split the data $X = x_1, ..., x_N$ into training set $X^{(T)}$ and validation set $X^{(V)}$ (where $X^{(T)} \cup X^{(V)} = X$), and we perform the grid-search method with a given hyperparameter to find the composite SED groups,
 
 \begin{equation}
     \hat{ \mathbf{\mu} } = 
-    \mathrm{GridSearch}(X^{(T)} \mid b_{lim}),
+    \mathrm{GridSearch}(X^{(T)} \mid b < b_{lim}),
     \label{eq:gridsearch}
 \end{equation}
 where $\hat{\mu} = f_{\lambda 1}, ..., f_{\lambda k}, ..., f_{\lambda M}$ is a vector of $M$ mean values of $M$ composite groups.
@@ -154,7 +154,7 @@ To test how likely the composite groups we found in GridSearch is correct, we ca
 
 \begin{equation}
     \begin{split}
-        &p(X^{(V)} \mid \hat \mu, b_{lim}) \\ 
+        &p(X^{(V)} \mid \hat \mu, b < b_{lim}) \\ 
         = &\hat L 
         \sim
         \prod_{i=1}^{N^{(V)}} \prod_{k=1}^{M}         
@@ -180,8 +180,7 @@ The definition of BIC is,
 \begin{equation}
     \mathrm{BIC} = \ln{(N)} \times M - 2\ln{\hat L},
 \end{equation}
-where N is the number of observed data, M is the number of parameters, and $\hat L$ is the maximum likelihood estimations.
+where N is the number of observed data, M is the number of parameters, and $\hat L$ is the maximum likelihood estimation.
 The choice of b\_lim with lowest BIC is preferred. 
-According to the definition of BIC, the more composite groups, choice of b\_lim is less preferred.
 
 \end{document}
